@@ -34,6 +34,7 @@ public class DistributedStringMap implements SimpleStringMap {
             @Override
             public void viewAccepted(View newView) {
                 if (newView instanceof MergeView) {
+                    System.out.println("MERGE VIEW DETECTED!!!");
                     ViewHandler handler = new ViewHandler(channel, (MergeView)newView);
                     handler.start();
                 }
