@@ -3,6 +3,7 @@ package pl.edu.rozpr.hashtable;
 
 import org.jgroups.Address;
 import org.jgroups.JChannel;
+import org.jgroups.MergeView;
 import org.jgroups.Message;
 import org.jgroups.Receiver;
 import org.jgroups.View;
@@ -12,7 +13,9 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -29,8 +32,11 @@ public class DistributedStringMap implements SimpleStringMap {
         this.channel = channel;
         this.channel.setReceiver(new Receiver() {
             @Override
-            public void viewAccepted(View new_view) {
-
+            public void viewAccepted(View newView) {
+                if (newView instanceof MergeView) {
+                    ViewHandler handler = new ViewHandler(channel, (MergeView)newView);
+                    handler.start();
+                }
             }
 
             @Override
@@ -66,6 +72,12 @@ public class DistributedStringMap implements SimpleStringMap {
                         innerMap.remove(distMsg.getKey());
                         removeCondition.signalAll();
                         lock.unlock();
+                    } else if (distMsg.getMessageType().equals(DistributedStringMapMessageType.ACQUIRE_STATE)) {
+                        System.out.println(String.format("Received ACQUIRE_STATE message for source address '%s'." +
+                                        " Receiving state...",
+                                distMsg.getStateSourceAddress()));
+                        channel.getState(distMsg.getStateSourceAddress(), 5000);
+                        System.out.println("Done!");
                     } else {
                         System.out.println("Unknown message type!");
                     }
@@ -144,6 +156,47 @@ public class DistributedStringMap implements SimpleStringMap {
         catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    private class ViewHandler extends Thread {
+        JChannel channel;
+        MergeView view;
+
+        private ViewHandler(JChannel channel, MergeView view) {
+            this.channel = channel;
+            this.view = view;
+        }
+
+        public void run() {
+            List<View> subgroups = view.getSubgroups();
+
+            View firstView = subgroups.get(0); // coordinator of the first view picks random
+            Address myAddress = channel.getAddress();
+
+            if (firstView.getCoord().equals(myAddress)) {
+                System.out.println("This container is picking the MASTER source of state");
+                View pickView = subgroups.get((int)Math.floor(Math.random() * subgroups.size())); // pick a random
+                System.out.println("Picked " + pickView.getCoord().toString());
+
+                DistributedStringMapMessage msg = DistributedStringMapMessage.createAcquireStateMessage(pickView.getCoord());
+                try {
+                    byte[] data = msg.toBytes();
+                    List<View> restGroups = new ArrayList<>();
+                    restGroups.addAll(subgroups);
+                    restGroups.remove(pickView);
+
+                    for (View view : restGroups) {
+                        for (Address member : view.getMembers()) {
+                            System.out.println(String.format("Sending ACQUIRE_STATE to %s", member.toString()));
+                            channel.send(member, data);
+                        }
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }

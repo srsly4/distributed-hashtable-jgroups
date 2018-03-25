@@ -5,7 +5,8 @@ package pl.edu.rozpr.hashtable;
  */
 public enum DistributedStringMapMessageType {
     KEY_PUT ((byte)0x01),
-    KEY_REMOVE ((byte)0x02);
+    KEY_REMOVE ((byte)0x02),
+    ACQUIRE_STATE ((byte)0xa2);
 
     private final byte operationNumber;
     private DistributedStringMapMessageType(byte operationNumber) {

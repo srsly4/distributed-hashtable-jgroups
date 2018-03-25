@@ -18,6 +18,7 @@ public class DistributedStringMapMessage implements Serializable {
     private final DistributedStringMapMessageType messageType;
     private String key = "";
     private String value = "";
+    private Address stateSourceAddress = null;
 
     private DistributedStringMapMessage(DistributedStringMapMessageType messageType) {
         this.messageType = messageType;
@@ -55,6 +56,12 @@ public class DistributedStringMapMessage implements Serializable {
         return message;
     }
 
+    public static DistributedStringMapMessage createAcquireStateMessage(Address stateSourceAddress) {
+        DistributedStringMapMessage message = new DistributedStringMapMessage(DistributedStringMapMessageType.ACQUIRE_STATE);
+        message.stateSourceAddress = stateSourceAddress;
+        return message;
+    }
+
     public String getKey() {
         return key;
     }
@@ -65,5 +72,9 @@ public class DistributedStringMapMessage implements Serializable {
 
     public DistributedStringMapMessageType getMessageType() {
         return messageType;
+    }
+
+    public Address getStateSourceAddress() {
+        return stateSourceAddress;
     }
 }

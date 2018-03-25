@@ -10,6 +10,8 @@ import org.jgroups.protocols.pbcast.STATE;
 import org.jgroups.protocols.pbcast.STATE_TRANSFER;
 import org.jgroups.stack.ProtocolStack;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Scanner;
 
 public class Main {
@@ -17,11 +19,11 @@ public class Main {
     private JChannel operationCh;
     private final String clusterName;
     private final ProtocolStack stack;
-    public Main(String clusterName) {
+    public Main(String clusterName, InetAddress multicastAddress) {
         this.clusterName = clusterName;
         operationCh = new JChannel(false);
         stack = new ProtocolStack();
-        stack.addProtocol(new UDP())
+        stack.addProtocol(new UDP().setValue("mcast_group_addr", multicastAddress))
                 .addProtocol(new PING())
                 .addProtocol(new MERGE3())
                 .addProtocol(new FD_SOCK())
@@ -101,7 +103,11 @@ public class Main {
         System.setProperty("java.net.preferIPv4Stack", "true");
 
         String clusterName = args.length == 1 ? args[0] : "default_group";
-        Main application = new Main(clusterName);
-        application.runInstance();
+        try {
+            Main application = new Main(clusterName, InetAddress.getByName("230.0.0.144"));
+            application.runInstance();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
     }
 }
