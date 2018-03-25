@@ -77,8 +77,7 @@ public class DistributedStringMap implements SimpleStringMap {
                         System.out.println(String.format("Received ACQUIRE_STATE message for source address '%s'." +
                                         " Receiving state...",
                                 distMsg.getStateSourceAddress()));
-                        channel.getState(distMsg.getStateSourceAddress(), 5000);
-                        System.out.println("Done!");
+                        new MergeStateHandler(channel, distMsg.getStateSourceAddress()).start();
                     } else {
                         System.out.println("Unknown message type!");
                     }
@@ -197,6 +196,25 @@ public class DistributedStringMap implements SimpleStringMap {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+        }
+    }
+
+    private class MergeStateHandler extends Thread {
+        JChannel channel;
+        Address target;
+
+        private MergeStateHandler(JChannel channel, Address target) {
+            this.channel = channel;
+            this.target = target;
+        }
+
+        public void run() {
+            try {
+                channel.getState(this.target, 30000);
+                System.out.println("Merging state done!");
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
