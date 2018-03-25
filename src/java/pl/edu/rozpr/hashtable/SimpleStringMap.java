@@ -1,4 +1,4 @@
-package java.pl.edu.rozpr.hashtable;
+package pl.edu.rozpr.hashtable;
 
 
 public interface SimpleStringMap {

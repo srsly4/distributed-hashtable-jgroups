@@ -2,7 +2,9 @@ group 'pl.edu.rozpr.hashtable'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'application'
 
+mainClassName = "pl.edu.rozpr.hashtable.Main"
 sourceCompatibility = 1.8
 
 repositories {
@@ -12,5 +14,30 @@ repositories {
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     // https://mvnrepository.com/artifact/org.jgroups/jgroups
-    compile group: 'org.jgroups', name: 'jgroups', version: '4.0.11.Final'
+    compile group: 'org.jgroups', name: 'jgroups', version: '3.6.14.Final'
+
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/java']
+        }
+        resources {
+            srcDirs = ['src/resources']
+        }
+    }
+}
+
+run {
+    standardInput = System.in
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'pl.edu.rozpr.hashtable.Main'
+    }
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
 }
